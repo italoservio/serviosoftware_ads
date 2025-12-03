@@ -44,7 +44,7 @@ func (c *UpdateCloakerByIDCmd) Exec(
 		return nil, exception.NewNotFoundException("cloaker nao encontrado")
 	}
 
-	if !session.IsAdmin && existing.UserID != session.UserID {
+	if !session.IsAdmin && existing.StringUserID() != session.UserID {
 		return nil, exception.NewForbiddenException()
 	}
 

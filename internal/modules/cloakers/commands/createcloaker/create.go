@@ -31,7 +31,7 @@ func (c *CreateCloakerCmd) Exec(input *CreateCloakerInput) (*models.Cloaker, err
 	url := c.env.SERVER_BASE_URL + "/r/" + encodedID
 
 	cloaker := &models.Cloaker{
-		UserID:   input.UserID,
+		UserID:   c.repo.ToID(input.UserID),
 		URL:      url,
 		WhiteURL: input.WhiteURL,
 		BlackURL: input.BlackURL,

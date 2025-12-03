@@ -38,7 +38,7 @@ func (c *DeleteCloakerByIDCmd) Exec(
 		return exception.NewNotFoundException("cloaker nao encontrado")
 	}
 
-	if !session.IsAdmin && cloaker.UserID != session.UserID {
+	if !session.IsAdmin && cloaker.StringUserID() != session.UserID {
 		return exception.NewForbiddenException()
 	}
 

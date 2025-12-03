@@ -1,9 +1,13 @@
 package repos
 
-import "github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/models"
+import (
+	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/models"
+	"go.mongodb.org/mongo-driver/v2/bson"
+)
 
 type CloakerRepository interface {
 	GenerateID() string
+	ToID(id string) bson.ObjectID
 	CreateWithID(id string, cloaker *models.Cloaker) (*models.Cloaker, error)
 	Create(cloaker *models.Cloaker) (*models.Cloaker, error)
 	GetByID(id string) (*models.Cloaker, error)

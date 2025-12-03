@@ -53,6 +53,11 @@ func (r *MongoCloakerRepository) GenerateID() string {
 	return bson.NewObjectID().Hex()
 }
 
+func (r *MongoCloakerRepository) ToID(id string) bson.ObjectID {
+	objectID, _ := bson.ObjectIDFromHex(id)
+	return objectID
+}
+
 func (r *MongoCloakerRepository) CreateWithID(id string, cloaker *models.Cloaker) (*models.Cloaker, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
