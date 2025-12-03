@@ -2,7 +2,9 @@ package cloakerredirect
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
+	"net"
 	"strings"
 
 	"github.com/houseme/mobiledetect/ua"
@@ -152,19 +154,34 @@ func (c *RedirectCloakerCmd) createIPLookupFromNetifyData(
 }
 
 func ipToPattern(ip string) string {
-	// IPv4: 192.168.1.100 -> 192.168.1.*
-	if strings.Contains(ip, ".") {
-		if i := strings.LastIndex(ip, "."); i != -1 {
-			return ip[:i] + ".*"
+	// Remove porta se presente (formato [IPv6]:porta)
+	if strings.HasPrefix(ip, "[") {
+		if i := strings.Index(ip, "]"); i != -1 {
+			ip = ip[1:i]
 		}
 	}
 
-	// IPv6: 2001:0db8:85a3::8a2e:0370:7334 -> 2001:0db8:85a3:*
-	if strings.Contains(ip, ":") {
-		parts := strings.Split(ip, ":")
-		if len(parts) > 3 {
-			return strings.Join(parts[:3], ":") + ":*"
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return ip
+	}
+
+	// IPv4: 192.168.1.100 -> 192.168.1.*
+	if parsedIP.To4() != nil {
+		ipStr := parsedIP.String()
+		if i := strings.LastIndex(ipStr, "."); i != -1 {
+			return ipStr[:i] + ".*"
 		}
+	}
+
+	// IPv6: pegar os primeiros 48 bits (3 hextets)
+	// parsedIP.To16() nos dá a representação completa de 16 bytes
+	ipv6 := parsedIP.To16()
+	if ipv6 != nil {
+		// Formatar os primeiros 6 bytes (48 bits) como padrão
+		// Cada hextet são 2 bytes
+		return fmt.Sprintf("%02x%02x:%02x%02x:%02x%02x:*",
+			ipv6[0], ipv6[1], ipv6[2], ipv6[3], ipv6[4], ipv6[5])
 	}
 
 	return ip
