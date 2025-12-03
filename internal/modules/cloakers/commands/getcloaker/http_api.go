@@ -31,19 +31,9 @@ func (u *GetCloakerHttpAPI) GetCloakerByID(w http.ResponseWriter, r *http.Reques
 	pathParameters := mux.Vars(r)
 	cloakerID := pathParameters["cloakerId"]
 
-	body := r.Body
-	defer body.Close()
+	payload := GetCloakerByIDCmdInput{ID: cloakerID}
 
-	var payload GetCloakerByIDCmdInput
-	err := json.NewDecoder(body).Decode(&payload)
-	if err != nil {
-		exception.NewPayloadException().WriteJSON(w)
-		return
-	}
-
-	payload.ID = cloakerID
-
-	err = u.validate.Struct(payload)
+	err := u.validate.Struct(payload)
 	if err != nil {
 		exception.NewValidatorException(err).WriteJSON(w)
 		return
