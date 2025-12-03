@@ -12,7 +12,7 @@ type NotFoundException struct {
 
 func NewNotFoundException(messages ...string) *AppException {
 	if len(messages) == 0 {
-		messages = []string{"ja existe um recurso com os mesmos atributos"}
+		messages = []string{"o recurso solicitado nao foi encontrado"}
 	}
 
 	return NewAppException(messages, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
