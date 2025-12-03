@@ -31,7 +31,12 @@ func main() {
 	api.RegisterInfraRoutes(router)
 	api.RegisterCloakersRoutes(router, container)
 
-	corsOrigins := handlers.AllowedOrigins([]string{"http://localhost:5173", "https://users.serviosoftware.com"})
+	corsOrigins := handlers.AllowedOrigins([]string{
+		"http://localhost:5173",
+		"http://localhost:5174",
+		"https://users.serviosoftware.com",
+		"https://ads.serviosoftware.com",
+	})
 	corsHeaders := handlers.AllowedHeaders([]string{"Content-Type", "Authorization"})
 	corsMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 	corsCredentials := handlers.AllowCredentials()
