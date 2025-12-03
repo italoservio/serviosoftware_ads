@@ -35,6 +35,11 @@ func RegisterCloakersRoutes(mux *mux.Router, c *deps.Container) {
 	protected.
 		Handle(
 			"/{cloakerId}",
+			http.HandlerFunc(c.CloakersHttpAPI.GetCloakerByIDHttpAPI.GetCloakerByID)).
+		Methods("GET")
+	protected.
+		Handle(
+			"/{cloakerId}",
 			http.HandlerFunc(c.CloakersHttpAPI.DeleteCloakerHttpAPI.DeleteCloakerByID)).
 		Methods("DELETE")
 }

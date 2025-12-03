@@ -7,6 +7,7 @@ import (
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/cloakerredirect"
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/createcloaker"
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/deletecloaker"
+	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/getcloaker"
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/listcloakers"
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/commands/updatecloaker"
 	"github.com/italoservio/serviosoftware_ads/internal/modules/cloakers/repos"
@@ -37,6 +38,7 @@ func NewContainer(envVars *env.Env) *Container {
 	ipLookupRepository := repos.NewMongoIPLookupRepository(dbConn)
 	netifyClient := clients.NewNetifyClient(*envVars)
 
+	getCloakerByIDCmd := getcloaker.NewGetCloakerByIDCmd(cloakersRepository)
 	createCloakerCmd := createcloaker.NewCreateCloakerCmd(cloakersRepository, *envVars)
 	deleteCloakerCmd := deletecloaker.NewDeleteCloakerByIDCmd(cloakersRepository)
 	listCloakersCmd := listcloakers.NewListCloakerCmd(cloakersRepository)
@@ -44,6 +46,7 @@ func NewContainer(envVars *env.Env) *Container {
 	redirectCloakerCmd := cloakerredirect.NewRedirectCloakerCmd(ipLookupRepository, cloakersRepository, *netifyClient)
 
 	cloakersHttpAPI := commands.NewCloakersHttpAPI(
+		getcloaker.NewGetCloakerHttpAPI(validator, getCloakerByIDCmd),
 		createcloaker.NewCreateCloakerHttpAPI(validator, createCloakerCmd),
 		deletecloaker.NewDeleteCloakerHttpAPI(validator, deleteCloakerCmd),
 		listcloakers.NewListCloakersHttpAPI(validator, listCloakersCmd),
