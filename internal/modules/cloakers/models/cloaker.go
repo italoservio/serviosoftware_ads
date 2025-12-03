@@ -7,7 +7,7 @@ import (
 )
 
 type CloakerConfiguration struct {
-	AllowOnlyMobile bool `bson:"allowOnlyMobile" json:"allowOnlyMobile" validate:"required"`
+	AllowOnlyMobile bool `bson:"allowOnlyMobile" json:"allowOnlyMobile"`
 }
 
 type Cloaker struct {
