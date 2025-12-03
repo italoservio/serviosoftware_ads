@@ -7,6 +7,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/handlers v1.5.2
 	github.com/gorilla/mux v1.8.1
+	github.com/houseme/mobiledetect v1.2.1
 	github.com/joho/godotenv v1.5.1
 	go.mongodb.org/mongo-driver/v2 v2.3.1
 )
@@ -17,7 +18,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
-	github.com/houseme/mobiledetect v1.2.1 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
