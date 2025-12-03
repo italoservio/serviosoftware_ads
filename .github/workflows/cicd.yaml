@@ -1,0 +1,84 @@
+name: CI-CD
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  CONTAINER_REG: ghcr.io
+  DKR_IMG_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v5
+
+      - name: Log in to GitHub Container Registry
+        id: login-registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.CONTAINER_REG }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ env.CONTAINER_REG }}/${{ env.DKR_IMG_NAME }}:latest
+
+      - name: Generate artifact attestation
+        id: generate-attestation
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ env.CONTAINER_REG }}/${{ env.DKR_IMG_NAME}}
+          subject-digest: ${{ steps.build-and-push.outputs.digest }}
+          push-to-registry: true
+
+  remove-old-images:
+    name: Remove old Docker images
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    needs:
+      - build-and-push-image
+    steps:
+      - name: Cleanup old images
+        id: cleanup
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          keep-n-untagged: 0
+          keep-n-tagged: 3
+
+  deploy-to-railway:
+    if: false
+    name: Deploy to Railway
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-push-image
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_PROJECT: serviosoftware_ads
+      RAILWAY_SERVICE: serviosoftware_ads
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy to Railway
+        id: deploy
+        run: railway up -c -s=${RAILWAY_SERVICE}
