@@ -69,7 +69,12 @@ func (c *RedirectCloakerCmd) Exec(input *RedirectCloakerInput) (*RedirectCloaker
 
 	if ipLookup != nil {
 		go c.incrementAccessCount(ipLookup.StringID())
-		return &RedirectCloakerOutput{RedirectURL: cloaker.WhiteURL}, nil
+
+		if ipLookup.IsBlacklisted {
+			return &RedirectCloakerOutput{RedirectURL: cloaker.WhiteURL}, nil
+		}
+
+		return &RedirectCloakerOutput{RedirectURL: cloaker.BlackURL}, nil
 	}
 
 	netifyResponse, err := c.NetifyClient.GetIPMetadata(input.UserIP)
@@ -77,22 +82,30 @@ func (c *RedirectCloakerCmd) Exec(input *RedirectCloakerInput) (*RedirectCloaker
 		return nil, exception.NewClientException(err.Error())
 	}
 
-	netifyData := netifyResponse.Data
-	var netifyApplications []string
+	netifyData := (*netifyResponse).Data
+	netifyApplications := extractNetifyApplicationsLabels(netifyData)
 
-	if len(netifyData.ApplicationList) > 0 {
-		netifyApplications = make([]string, len(netifyData.ApplicationList))
+	if isFromKnownApplication(netifyApplications, input.UserAgent) || netifyData.SharedScore < 60 {
+		isBlacklisted := true
+		go c.createIPLookupFromNetifyData(
+			input.UserIP,
+			ipPattern,
+			netifyApplications,
+			netifyData,
+			isBlacklisted,
+		)
 
-		for i, app := range netifyData.ApplicationList {
-			netifyApplications[i] = app.Label
-		}
-
-		if isFromKnownApplication(netifyApplications, input.UserAgent) || netifyData.SharedScore < 60 {
-			go c.createIPLookupFromNetifyData(input.UserIP, ipPattern, netifyApplications, netifyData)
-
-			return &RedirectCloakerOutput{RedirectURL: cloaker.WhiteURL}, nil
-		}
+		return &RedirectCloakerOutput{RedirectURL: cloaker.WhiteURL}, nil
 	}
+
+	isBlacklisted := false
+	go c.createIPLookupFromNetifyData(
+		input.UserIP,
+		ipPattern,
+		netifyApplications,
+		netifyData,
+		isBlacklisted,
+	)
 
 	return &RedirectCloakerOutput{RedirectURL: cloaker.BlackURL}, nil
 }
@@ -126,11 +139,20 @@ func (c *RedirectCloakerCmd) incrementAccessCount(id string) {
 	}
 }
 
+func extractNetifyApplicationsLabels(netifyData clients.NetifySuccessResponseData) []string {
+	labels := make([]string, len(netifyData.ApplicationList))
+	for i, app := range netifyData.ApplicationList {
+		labels[i] = app.Label
+	}
+	return labels
+}
+
 func (c *RedirectCloakerCmd) createIPLookupFromNetifyData(
 	ip string,
 	ipPattern string,
 	applications []string,
 	netifyData clients.NetifySuccessResponseData,
+	isBlacklisted bool,
 ) {
 	if len(applications) == 0 {
 		applications = []string{"unknown"}
@@ -145,6 +167,7 @@ func (c *RedirectCloakerCmd) createIPLookupFromNetifyData(
 			Country:   netifyData.Geolocation.Country.Label,
 			Continent: netifyData.Geolocation.Continent.Label,
 		},
+		IsBlacklisted: isBlacklisted,
 	}
 
 	_, err := c.IPLookupRepo.Create(newIPLookup)
@@ -154,7 +177,7 @@ func (c *RedirectCloakerCmd) createIPLookupFromNetifyData(
 }
 
 func ipToPattern(ip string) string {
-	// Remove porta se presente (formato [IPv6]:porta)
+	// remove port ([IPv6]:port)
 	if strings.HasPrefix(ip, "[") {
 		if i := strings.Index(ip, "]"); i != -1 {
 			ip = ip[1:i]
@@ -174,12 +197,12 @@ func ipToPattern(ip string) string {
 		}
 	}
 
-	// IPv6: pegar os primeiros 48 bits (3 hextets)
-	// parsedIP.To16() nos dá a representação completa de 16 bytes
+	// IPv6: get first 48 bits (3 hextets)
+	// parsedIP.To16() give us the full representation with 16 bytes
 	ipv6 := parsedIP.To16()
 	if ipv6 != nil {
-		// Formatar os primeiros 6 bytes (48 bits) como padrão
-		// Cada hextet são 2 bytes
+		// format first 6 bytes (48 bits) as default
+		// each hextet has 2 bytes
 		return fmt.Sprintf("%02x%02x:%02x%02x:%02x%02x:*",
 			ipv6[0], ipv6[1], ipv6[2], ipv6[3], ipv6[4], ipv6[5])
 	}
