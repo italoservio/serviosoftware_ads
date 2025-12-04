@@ -5,21 +5,25 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
+	"github.com/italoservio/serviosoftware_ads/pkg/cache"
 	"github.com/italoservio/serviosoftware_ads/pkg/exception"
 )
 
 type RedirectCloakerHttpAPI struct {
 	validate           validator.Validate
 	RedirectCloakerCmd *RedirectCloakerCmd
+	Cache              cache.CacheRepository
 }
 
 func NewRedirectCloakerHttpAPI(
 	validate *validator.Validate,
 	redirectCloakerCmd *RedirectCloakerCmd,
+	cacheRepository cache.CacheRepository,
 ) *RedirectCloakerHttpAPI {
 	return &RedirectCloakerHttpAPI{
 		validate:           *validate,
 		RedirectCloakerCmd: redirectCloakerCmd,
+		Cache:              cacheRepository,
 	}
 }
 
@@ -29,6 +33,13 @@ func (c *RedirectCloakerHttpAPI) RedirectCloaker(w http.ResponseWriter, r *http.
 
 	userIP := getClientIP(r)
 	userAgent := r.UserAgent()
+
+	if cachedURL, found := c.Cache.Get(userIP); found {
+		if redirectURL, ok := cachedURL.(string); ok {
+			http.Redirect(w, r, redirectURL, http.StatusFound)
+			return
+		}
+	}
 
 	input := RedirectCloakerInput{
 		EncodedID: encodedID,
@@ -46,6 +57,8 @@ func (c *RedirectCloakerHttpAPI) RedirectCloaker(w http.ResponseWriter, r *http.
 		exception.ToAppException(err).WriteJSON(w)
 		return
 	}
+
+	c.Cache.Set(userIP, output.RedirectURL)
 
 	http.Redirect(w, r, output.RedirectURL, http.StatusFound)
 }
